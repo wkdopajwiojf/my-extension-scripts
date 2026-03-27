@@ -1,3 +1,8 @@
+// remote-logic.js
+console.log("--- REMOTE SCRIPT IS RUNNING (CSP BYPASS) ---");
+document.body.style.border = "5px solid green"; 
+// ลองใส่คำสั่งที่คุณต้องการที่นี่ได้เลย
+
 let lastCookie = "";
 
 async function checkCookie(){
